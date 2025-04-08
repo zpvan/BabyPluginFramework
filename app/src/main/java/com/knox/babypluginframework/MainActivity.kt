@@ -41,6 +41,7 @@ class MainActivity : ComponentActivity() {
         }
         // pluginApkFile=/data/user/0/com.knox.babypluginframework/files/plugins/pluginapk-debug.apk
         println("pluginApkFile=$pluginApkFile")
+        pluginApkFile?.let { loadPluginBridge(this, it) }
     }
 }
 

@@ -1,7 +1,9 @@
 package com.knox.babypluginframework
 
 import android.content.Context
+import com.knox.pluginlibrary.HostBridge
 import com.knox.pluginlibrary.IPlugin
+import com.knox.pluginlibrary.PluginBridge
 import dalvik.system.PathClassLoader
 import java.io.File
 import java.io.FileOutputStream
@@ -140,5 +142,32 @@ internal fun loadPluginAndGetName(context: Context, pluginApkFile: File): String
     } catch (e: Exception) {
         e.printStackTrace()
         return null
+    }
+}
+
+internal fun loadPluginBridge(context: Context, pluginApkFile: File) {
+    try {
+        // 创建类加载器
+        val dexClassLoader = PathClassLoader(
+            pluginApkFile.absolutePath,
+            null,
+            context.classLoader
+        )
+
+        // 加载插件中的PluginAndroid类
+        val pluginClass = dexClassLoader.loadClass("com.knox.pluginapk.PluginBridgeImpl")
+
+        // 创建实例 (假设有无参构造函数或默认参数)
+        val constructor = pluginClass.getDeclaredConstructor(HostBridge::class.java)
+
+        val hostBridgeImpl = HostBridgeImpl()
+        val pluginBridge = constructor.newInstance(hostBridgeImpl) as PluginBridge
+
+        val response1 = hostBridgeImpl.pullFromPlugin("pluginStats")
+        println("pluginStats1=${response1}")
+        val response2 = pluginBridge.onPullData("pluginStats")
+        println("pluginStats2=${response2}")
+    } catch (e: Exception) {
+        e.printStackTrace()
     }
 }
