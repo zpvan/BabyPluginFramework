@@ -34,3 +34,4 @@ dependencyResolutionManagement {
 rootProject.name = "BabyPluginFramework"
 include(":app")
 include(":pluginapk")
+include(":pluginlibrary")

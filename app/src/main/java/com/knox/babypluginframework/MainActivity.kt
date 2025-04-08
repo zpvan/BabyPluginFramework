@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
             BabyPluginFrameworkTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Greeting(
-                        name = pluginApkFile?.let { loadPluginAndGetValue(this, it) } ?: "Android",
+                        name = pluginApkFile?.let { loadPluginAndGetName(this, it) } ?: "Android",
                         modifier = Modifier.padding(innerPadding)
                     )
                 }

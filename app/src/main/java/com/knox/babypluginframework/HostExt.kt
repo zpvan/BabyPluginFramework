@@ -1,6 +1,7 @@
 package com.knox.babypluginframework
 
 import android.content.Context
+import com.knox.pluginlibrary.IPlugin
 import dalvik.system.PathClassLoader
 import java.io.File
 import java.io.FileOutputStream
@@ -108,6 +109,34 @@ internal fun loadPluginAndGetValue(context: Context, pluginApkFile: File): Strin
 
         println("PluginAndroid value=$value")
         return value
+    } catch (e: Exception) {
+        e.printStackTrace()
+        return null
+    }
+}
+
+internal fun loadPluginAndGetName(context: Context, pluginApkFile: File): String? {
+    try {
+        // 创建类加载器
+        val dexClassLoader = PathClassLoader(
+            pluginApkFile.absolutePath,
+            null,
+            context.classLoader
+        )
+
+        // 加载插件中的PluginAndroid类
+        val pluginClass = dexClassLoader.loadClass("com.knox.pluginapk.BabyPlugin")
+
+        // 创建实例 (假设有无参构造函数或默认参数)
+        val constructor = pluginClass.getDeclaredConstructor()
+        // 强转成接口
+        val babyPlugin = constructor.newInstance() as IPlugin
+
+        // 获取name
+        val name = babyPlugin.name
+
+        println("BabyPlugin name=$name")
+        return name
     } catch (e: Exception) {
         e.printStackTrace()
         return null
