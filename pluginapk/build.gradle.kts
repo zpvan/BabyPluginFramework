@@ -1,3 +1,5 @@
+import java.util.Locale
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -36,6 +38,57 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+}
+
+// 在项目配置评估后添加任务
+afterEvaluate {
+    android.applicationVariants.all { variant ->
+        val variantName = variant.name
+        val capitalizedVariantName = variantName.replaceFirstChar {
+            if (it.isLowerCase()) it.titlecase(
+                Locale.getDefault()
+            ) else it.toString()
+        }
+
+        val assembleTask = tasks.named("assemble").get()
+
+        // 创建复制任务
+        val copyTask = tasks.register("copy${capitalizedVariantName}ApkToHostAssets") {
+            group = "Plugin" // 这会将任务放在名为"Plugin"的组中
+            description = "Copies the $variantName APK to hostApp assets directory" // 任务描述
+
+            doLast {
+                val targetDir = file("${rootProject.projectDir}/app/src/main/assets")
+                if (!targetDir.exists()) {
+                    targetDir.mkdirs()
+                }
+
+                // 获取APK输出目录
+                val outputDir = variant.outputs.first().outputFile.parentFile
+                // 查找APK文件(debug版本)
+                val apkFile =
+                    outputDir.listFiles()?.find { it.extension == "apk" && it.name.contains("debug") }
+
+                copy {
+                    if (apkFile != null) {
+                        from(apkFile)
+                        println("Copying APK from: ${apkFile.absolutePath}")
+                    } else {
+                        println("No APK file found in ${outputDir.absolutePath}")
+                    }
+
+                    // 定义目标目录(确保目录存在)
+                    into(targetDir)
+                }
+
+                println("Copied APK to hostApp's assets directory")
+            }
+        }
+
+        // 确保复制任务在构建完成后执行
+        assembleTask.finalizedBy(copyTask)
+        true
     }
 }
 
