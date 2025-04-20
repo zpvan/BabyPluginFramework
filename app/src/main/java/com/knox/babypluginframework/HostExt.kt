@@ -31,10 +31,9 @@ internal fun extractPluginApkFromAssets(
         val targetApkFile = File(pluginDir, assetApkName)
 
         // 如果文件已存在且不需要更新，直接返回
-        if (targetApkFile.exists()) {
-            // 可以在这里添加版本检查逻辑，决定是否需要更新
-            return Result.success(targetApkFile)
-        }
+//        if (targetApkFile.exists()) {
+//            return Result.success(targetApkFile)
+//        }
 
         // 打开 assets 中的文件
         context.assets.open(assetApkName).use { inputStream ->

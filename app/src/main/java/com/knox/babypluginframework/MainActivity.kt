@@ -31,7 +31,11 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             BabyPluginFrameworkTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                Scaffold(modifier = Modifier.fillMaxSize(), bottomBar = {
+                    Greeting(
+                        name = pluginApkFile?.let { loadPluginAndGetRes(this, it) } ?: "Android",
+                    )
+                }) { innerPadding ->
                     Greeting(
                         name = pluginApkFile?.let { loadPluginAndGetName(this, it) } ?: "Android",
                         modifier = Modifier.padding(innerPadding)
