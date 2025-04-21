@@ -2,6 +2,7 @@ package com.knox.babypluginframework
 
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -14,6 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.knox.babypluginframework.ui.theme.BabyPluginFrameworkTheme
 import java.io.File
+
+private const val TAG = "MainActivity"
 
 class MainActivity : ComponentActivity() {
 
@@ -45,7 +48,12 @@ class MainActivity : ComponentActivity() {
         }
         // pluginApkFile=/data/user/0/com.knox.babypluginframework/files/plugins/pluginapk-debug.apk
         println("pluginApkFile=$pluginApkFile")
-        pluginApkFile?.let { loadPluginBridge(this, it) }
+        pluginApkFile?.let {
+            loadPluginBridge(this, it)
+            Log.d(TAG, "startPluginTestService1 Begin")
+            startPluginTestService1(this, it)
+            Log.d(TAG, "startPluginTestService1 End")
+        }
     }
 }
 
