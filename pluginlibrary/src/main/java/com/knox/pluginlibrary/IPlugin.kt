@@ -7,4 +7,8 @@ interface IPlugin {
     val name: String
 
     fun getStringForResId(resources: Resources): String
+
+    companion object {
+        var bigResources : Resources? = null
+    }
 }

@@ -1,8 +1,13 @@
 package com.knox.babypluginframework
 
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+import android.content.res.AssetManager
+import android.content.res.Resources
 import android.util.Log
+import com.knox.pluginlibrary.IPlugin
 import dalvik.system.DexClassLoader
 import dalvik.system.PathClassLoader
 import java.io.File
@@ -25,6 +30,22 @@ internal fun startPluginTestService1(context: Context, pluginApkFile: File) {
     val serviceName = "com.knox.pluginapk.TestService1"
     intent.setClassName(context, serviceName)
     context.startService(intent)
+}
+
+internal fun startPluginTestActivity1(context: Context, pluginApkFile: File) {
+    // 1. 合并 DEX 到宿主 ClassLoader
+    mergeDexToHostClassLoader(context, pluginApkFile)
+    // 2. 造一个"超级"Resources保存在全局变量中
+    IPlugin.bigResources = loadPluginResources(context, pluginApkFile)
+
+    // 3. 启动插件Activity
+    val intent = Intent()
+    val activityName = "com.knox.pluginapk.TestActivity1"
+    intent.setComponent(ComponentName("com.knox.babypluginframework", activityName))
+    intent.setFlags(FLAG_ACTIVITY_NEW_TASK)
+
+    Log.d(TAG, "startPluginTestActivity1 baseContext=${context.hashCode()}")
+    context.startActivity(intent)
 }
 
 /**
@@ -86,5 +107,31 @@ fun mergeDexToHostClassLoader(context: Context, pluginApkFile: File) {
     } catch (e: Exception) {
         Log.e(TAG, "Failed to merge DEX", e)
         throw RuntimeException("Failed to merge plugin DEX to host ClassLoader", e)
+    }
+}
+
+/**
+ * 加载插件资源
+ */
+private fun loadPluginResources(context: Context, pluginApkFile: File): Resources {
+    try {
+        val assetManager = AssetManager::class.java.newInstance()
+        val addAssetPathMethod = AssetManager::class.java.getDeclaredMethod("addAssetPath", String::class.java)
+        addAssetPathMethod.isAccessible = true
+
+        // !!!添加host的资源!!!
+        addAssetPathMethod.invoke(assetManager, context.packageResourcePath)
+        // !!!添加plugin的资源!!!
+        addAssetPathMethod.invoke(assetManager, pluginApkFile.absolutePath)
+
+        // 创建插件 Resources 对象
+        return Resources(
+            assetManager,
+            context.resources.displayMetrics,
+            context.resources.configuration
+        )
+    } catch (e: Exception) {
+        Log.e("PluginLoader", "Failed to load plugin resources", e)
+        throw RuntimeException("Failed to load plugin resources", e)
     }
 }
