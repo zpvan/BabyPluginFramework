@@ -22,6 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.knox.babypluginframework.ui.theme.BabyPluginFrameworkTheme
 import java.io.File
+import com.knox.babypluginframework.hookactivity.ActivityHook
+import com.knox.babypluginframework.hookactivity.ProxyActivity
 
 private const val TAG = "MainActivity"
 
@@ -40,6 +42,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val hostContext = this.baseContext
+
+        ActivityHook.install(this, ProxyActivity::class.java)
+        ActivityHook.addTargetActivity("com.knox.babypluginframework.hookactivity.TargetActivity")
+
         setContent {
             BabyPluginFrameworkTheme {
                 Scaffold(modifier = Modifier.fillMaxSize(), bottomBar = {
@@ -111,6 +117,26 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.padding(innerPadding)
                         ) {
                             Text("Start TestActivity1")
+                        }
+                        // 启动HostApp中但在Manifest未声明的TargetActivity
+                        Button(
+                            onClick = {
+                                // 点击按钮时的操作
+                                val clickMessage = "Button clicked at ${System.currentTimeMillis()}"
+                                Log.d(TAG, clickMessage) // 打印到日志
+
+                                val intent = Intent()
+//                                val activityName = "com.knox.babypluginframework.hookactivity.ProxyActivity"
+                                val activityName = "com.knox.babypluginframework.hookactivity.TargetActivity"
+                                intent.setComponent(ComponentName("com.knox.babypluginframework", activityName))
+                                intent.setFlags(FLAG_ACTIVITY_NEW_TASK)
+                                hostContext.startActivity(intent)
+
+                                Log.d(TAG,"startActivity($activityName)")
+                            },
+                            modifier = Modifier.padding(innerPadding)
+                        ) {
+                            Text("Start TargetActivity")
                         }
                     }
                 }
