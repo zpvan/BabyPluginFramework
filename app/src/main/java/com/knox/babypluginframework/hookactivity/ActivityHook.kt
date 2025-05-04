@@ -2,12 +2,12 @@ package com.knox.babypluginframework.hookactivity
 
 import android.app.Activity
 import android.app.Instrumentation
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.os.PersistableBundle
 import android.util.Log
 import androidx.annotation.RequiresApi
 import java.lang.reflect.Proxy
@@ -17,20 +17,24 @@ private const val TAG = "ActivityHook"
 /**
  * ActivityHook 工具类
  */
-public object ActivityHook {
+object ActivityHook {
     /**
      * 安装 Activity Hook
      * @param context 上下文
      * @param proxyActivityClass 代理Activity类
+     *
      */
     fun install(context: Context, proxyActivityClass: Class<*>) {
+        // 静态代理方案，通过ProxyActivity统一加载插件中的所有Activity
+        Log.d(TAG, "该设备sdk=${Build.VERSION.SDK_INT}")
+
         try {
             // 1. 优先尝试 Hook Instrumentation
-            hookInstrumentation(context, proxyActivityClass) // NG
+            hookInstrumentation(context, proxyActivityClass)
 
             // 2. 备选方案：根据系统版本 Hook ActivityManager 或 ActivityTaskManager
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                hookActivityTaskManager(context, proxyActivityClass) // OK
+                hookActivityTaskManager(context, proxyActivityClass)
             } else {
                 hookActivityManager(context, proxyActivityClass)
             }
@@ -60,9 +64,8 @@ public object ActivityHook {
     /**
      * 判断是否需要替换指定Activity
      */
-    private fun needReplaceActivity(activityName: String): Boolean {
-        return targetActivities.contains(activityName) ||
-            activityName.startsWith("com.knox.babypluginframework.hookactivity.")
+    fun needReplaceActivity(activityName: String): Boolean {
+        return targetActivities.contains(activityName)
     }
 
     /**
@@ -106,29 +109,50 @@ fun hookInstrumentation(context: Context, proxyActivityClass: Class<*>) {
          *
          * @UnsupportedAppUsage
          * Instrumentation mInstrumentation;
+         *
+         * Hook ActivityThread的mInstrumentation比Activity的mInstrumentation要好,
+         * 虽然Activity的mInstrumentation都是由ActivityThread的mInstrumentation赋值的,
+         * 但是ActivityThread是单例,Hook mInstrumentation只需要做一次只需要做一次, 而且必须是MainActivity启动前就要Hook
+         * 如果Hook Activity的mInstrumentation, 那么就需要每个Activity的mInstrumentation都要Hook, 很麻烦
          */
         val mInstrumentationField = activityThreadClass.getDeclaredField("mInstrumentation")
         mInstrumentationField.isAccessible = true
         val mInstrumentation = mInstrumentationField.get(currentActivityThread) as Instrumentation
 
-        // 3. 创建自定义 Instrumentation
+        /*
+         * 3. 创建自定义 Instrumentation
+         *
+         * 静态代理, new了一个customInstrumentation包住原mInstrumentation
+         * 改写 execStartActivity, startActivitySync, newActivity 这3支api的原有逻辑
+         * 其中
+         * execStartActivity是Activity的startActivity和Context的startActivity的必经之路
+         * Instrumentation.execStartActivity会调用ActivityTaskManager.getService().startActivity
+         */
         val customInstrumentation = object : Instrumentation() {
-            // sdk-35 没有这支api了
+
+            /*
+             * frameworks/base/core/java/android/app/Instrumentation.java
+             *
+             * public ActivityResult execStartActivity(
+             *     Context who, IBinder contextThread, IBinder token, Activity target,
+             *     Intent intent, int requestCode, Bundle options)
+             */
             fun execStartActivity(
-                context: Context,
-                who: IBinder?,
-                contextThread: Int,
+                who: Context?,
+                contextThread: IBinder?,
                 token: IBinder?,
                 target: Activity?,
                 intent: Intent,
                 requestCode: Int,
                 options: Bundle?
             ): ActivityResult? {
+                Log.d(TAG, "Evil Instrumentation execStartActivity")
+                var newIntent = intent
                 val originalComponent = intent.component
 
                 if (originalComponent != null) {
                     val targetActivityName = originalComponent.className
-                    if (needReplaceActivity(targetActivityName)) {
+                    if (ActivityHook.needReplaceActivity(targetActivityName)) {
                         // 创建代理 Intent
                         val proxyIntent = Intent(context, proxyActivityClass)
                         // 保存原始 Intent
@@ -142,9 +166,16 @@ fun hookInstrumentation(context: Context, proxyActivityClass: Class<*>) {
                         )
 
                         // 替换为代理 Intent
-                        intent.component = ComponentName(context, proxyActivityClass)
+//                        intent.component = ComponentName(context, proxyActivityClass)
+                        newIntent = proxyIntent
                     }
                 }
+                Log.d(
+                    TAG,
+                    "hookInstrumentation 上半场, intent=${newIntent.hashCode()}, originalIntent=${intent.hashCode()}, targetActivityName=${
+                        newIntent.getStringExtra("target_activity")
+                    }"
+                )
 
                 // 调用原始的 execStartActivity 方法
                 try {
@@ -152,7 +183,6 @@ fun hookInstrumentation(context: Context, proxyActivityClass: Class<*>) {
                         "execStartActivity",
                         Context::class.java,
                         IBinder::class.java,
-                        Int::class.javaPrimitiveType,
                         IBinder::class.java,
                         Activity::class.java,
                         Intent::class.java,
@@ -162,13 +192,33 @@ fun hookInstrumentation(context: Context, proxyActivityClass: Class<*>) {
                     method.isAccessible = true
                     return method.invoke(
                         mInstrumentation,
-                        context, who, contextThread, token, target, intent, requestCode, options
+                        who, contextThread, token, target, newIntent, requestCode, options
                     ) as? ActivityResult
                 } catch (e: Exception) {
                     Log.e("ActivityHook", "调用原始execStartActivity失败", e)
                 }
 
                 return null
+            }
+
+            override fun callActivityOnCreate(activity: Activity?, icicle: Bundle?) {
+                Log.d(
+                    TAG,
+                    "hookInstrumentation callActivityOnCreate, activity=${activity?.componentName}"
+                )
+                mInstrumentation.callActivityOnCreate(activity, icicle)
+            }
+
+            override fun callActivityOnCreate(
+                activity: Activity?,
+                icicle: Bundle?,
+                persistentState: PersistableBundle?
+            ) {
+                Log.d(
+                    TAG,
+                    "hookInstrumentation callActivityOnCreate with persistentState, activity=${activity?.componentName}"
+                )
+                mInstrumentation.callActivityOnCreate(activity, icicle, persistentState)
             }
 
             override fun startActivitySync(intent: Intent, options: Bundle?): Activity {
@@ -186,10 +236,21 @@ fun hookInstrumentation(context: Context, proxyActivityClass: Class<*>) {
                 intent: Intent
             ): Activity {
                 val originalIntent = intent.getParcelableExtra<Intent>("original_intent")
+                Log.d(
+                    TAG,
+                    "hookInstrumentation 下半场, intent=${intent.hashCode()}, originalIntent=${originalIntent?.hashCode()}"
+                )
+                Log.d(
+                    TAG,
+                    "hookInstrumentation 下半场, target1=${intent.getStringExtra("target_activity")}, target2=${
+                        originalIntent?.getStringExtra("target_activity")
+                    }"
+                )
                 return if (originalIntent != null) {
                     Log.d(TAG, "hookInstrumentation newActivity, 使用原始Intent创建Activity")
                     // 调用原始方法，但使用原始Intent
-                    mInstrumentation.newActivity(cl, className, originalIntent)
+                    mInstrumentation.newActivity(cl, className, intent)
+//                    mInstrumentation.newActivity(cl, intent.getStringExtra("target_activity"), originalIntent)
                 } else {
                     Log.d(
                         TAG,
@@ -202,6 +263,21 @@ fun hookInstrumentation(context: Context, proxyActivityClass: Class<*>) {
 
         // 4. 替换 ActivityThread 中的 mInstrumentation
         mInstrumentationField.set(currentActivityThread, customInstrumentation)
+
+        /*
+         * Issue_1:
+         * TargetActivity : android.app.Activity()
+         * android.content.pm.PackageManager$NameNotFoundException: ComponentInfo{com.knox.babypluginframework/com.knox.babypluginframework.hookactivity.TargetActivity}
+         *               com.knox.babypluginframework         W  	at android.app.ApplicationPackageManager.getActivityInfo(ApplicationPackageManager.java:565)
+         *               com.knox.babypluginframework         W  	at com.android.internal.policy.PhoneWindow.installDecor(PhoneWindow.java:3017)
+         *               com.knox.babypluginframework         W  	at com.android.internal.policy.PhoneWindow.setContentView(PhoneWindow.java:531)
+         *               com.knox.babypluginframework         W  	at android.app.Activity.setContentView(Activity.java:3525)
+         *               com.knox.babypluginframework         W  	at com.knox.babypluginframework.hookactivity.TargetActivity.onCreate(TargetActivity.kt:11)
+         *               com.knox.babypluginframework         W  	at com.knox.babypluginframework.hookactivity.ProxyActivity.onCreate(ProxyActivity.kt:104)
+         *
+         * Close_1:
+         * 动态代理ActivityThread中的sPackageManager对象
+         */
 
         Log.d(TAG, "成功Hook Instrumentation")
     } catch (e: Exception) {
@@ -243,6 +319,12 @@ fun hookActivityTaskManager(context: Context, proxyActivityClass: Class<*>) {
          * private T mInstance;
          */
         val singletonClass = Class.forName("android.util.Singleton")
+        // 2-1. 调用 get 方法, 使得 mInstance 字段被赋值, 因为在 MyApplication 的 onCreate 阶段没被赋值
+        val getMethod = singletonClass.getDeclaredMethod("get").apply {
+            isAccessible = true
+        }
+        getMethod.invoke(singleton)
+
         val mInstanceField = singletonClass.getDeclaredField("mInstance")
         mInstanceField.isAccessible = true
         val mInstance = mInstanceField.get(singleton)
@@ -256,8 +338,10 @@ fun hookActivityTaskManager(context: Context, proxyActivityClass: Class<*>) {
         ) { proxy, method, args ->
             // 拦截 startActivity 方法
             if (method.name == "startActivity") {
-                Log.d(TAG, "hookActivityTaskManager startActivity, 拦截成功")
-                Log.d(TAG, "hookActivityTaskManager startActivity, AOP, proxy=${proxy?.hashCode()}, method=${method?.hashCode()}, args=${args?.hashCode()}")
+                Log.d(
+                    TAG,
+                    "hookActivityTaskManager startActivity 拦截成功(AOP), proxy=${proxy?.hashCode()}, method=${method?.hashCode()}, args=${args?.hashCode()}"
+                )
             }
 
             if (method.name == "startActivity") {
@@ -278,7 +362,7 @@ fun hookActivityTaskManager(context: Context, proxyActivityClass: Class<*>) {
                     if (originalComponent != null) {
                         // 检查是否需要替换
                         val targetActivityName = originalComponent.className
-                        if (needReplaceActivity(targetActivityName)) {
+                        if (ActivityHook.needReplaceActivity(targetActivityName)) {
                             // 创建代理 Intent
                             val proxyIntent = Intent(context, proxyActivityClass)
                             // 保存原始 Intent
@@ -295,8 +379,6 @@ fun hookActivityTaskManager(context: Context, proxyActivityClass: Class<*>) {
                 }
             }
 
-            // 调用原始方法
-//            method.invoke(mInstance, *args)
             // 调用原始方法时也需要处理 null 情况
             if (args == null) {
                 method.invoke(mInstance)  // 无参数调用
@@ -365,7 +447,7 @@ fun hookActivityManager(context: Context, proxyActivityClass: Class<*>) {
                     if (originalComponent != null) {
                         // 检查是否需要替换
                         val targetActivityName = originalComponent.className
-                        if (needReplaceActivity(targetActivityName)) {
+                        if (ActivityHook.needReplaceActivity(targetActivityName)) {
                             // 创建代理 Intent
                             val proxyIntent = Intent(context, proxyActivityClass)
                             // 保存原始 Intent
@@ -396,12 +478,4 @@ fun hookActivityManager(context: Context, proxyActivityClass: Class<*>) {
     } catch (e: Exception) {
         Log.e("ActivityHook", "Hook ActivityManager 失败", e)
     }
-}
-
-/**
- * 判断是否需要替换指定Activity
- */
-private fun needReplaceActivity(activityName: String): Boolean {
-    // 根据需求实现，例如检查是否为插件中的Activity
-    return activityName.startsWith("com.knox.babypluginframework.hookactivity.")
 }

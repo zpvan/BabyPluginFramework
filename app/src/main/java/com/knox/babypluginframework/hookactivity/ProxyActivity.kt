@@ -10,21 +10,22 @@ import android.os.IBinder
 import android.util.Log
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import java.lang.reflect.Method
 
 // /Users/knox/Library/Android/sdk/sources/android-30/android/app
 private const val TAG = "ProxyActivity"
 
-class ProxyActivity : AppCompatActivity() {
+open class ProxyActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         // 获取目标Activity类名
         val targetActivityName = ActivityHook.getOriginalTargetActivity(intent)
+        Log.d(TAG, "Proxy onCreate, intent=${intent.hashCode()}, targetActivityName=${intent.getStringExtra("target_activity")}")
 
         if (targetActivityName != null) {
             Log.d(TAG, "代理 $targetActivityName")
-            Log.d(TAG, "该设备sdk=${Build.VERSION.SDK_INT}")
 
             try {
                 // 加载目标Activity类
@@ -34,53 +35,11 @@ class ProxyActivity : AppCompatActivity() {
                 val targetActivity = targetActivityClass.newInstance() as Activity
 
                 // 反射获取 Activity.attach 方法
-                // 35
-//                val attachMethod35 = Activity::class.java.getDeclaredMethod(
-//                    "attach",
-//                    Context::class.java,
-//                    Class.forName("android.app.ActivityThread"),
-//                    Class.forName("android.app.Instrumentation"),
-//                    IBinder::class.java,
-//                    Int::class.javaPrimitiveType,
-//                    Application::class.java,
-//                    Intent::class.java,
-//                    Class.forName("android.content.pm.ActivityInfo"),
-//                    CharSequence::class.java,
-//                    Activity::class.java,
-//                    String::class.java,
-//                    Class.forName("android.app.Activity\$NonConfigurationInstances"),
-//                    Class.forName("android.content.res.Configuration"),
-//                    String::class.java,
-//                    Class.forName("com.android.internal.app.IVoiceInteractor"),
-//                    Class.forName("android.view.Window"),
-//                    Class.forName("android.view.ViewRootImpl\$ActivityConfigCallback"),
-//                    IBinder::class.java,
-//                    IBinder::class.java,
-//                    IBinder::class.java
-//                )
-
-                //30
-                val attachMethod = Activity::class.java.getDeclaredMethod(
-                    "attach",
-                    Context::class.java,
-                    Class.forName("android.app.ActivityThread"),
-                    Class.forName("android.app.Instrumentation"),
-                    IBinder::class.java,
-                    Int::class.javaPrimitiveType,
-                    Application::class.java,
-                    Intent::class.java,
-                    Class.forName("android.content.pm.ActivityInfo"),
-                    CharSequence::class.java,
-                    Activity::class.java,
-                    String::class.java,
-                    Class.forName("android.app.Activity\$NonConfigurationInstances"),
-                    Class.forName("android.content.res.Configuration"),
-                    String::class.java,
-                    Class.forName("com.android.internal.app.IVoiceInteractor"),
-                    Class.forName("android.view.Window"),
-                    Class.forName("android.view.ViewRootImpl\$ActivityConfigCallback"),
-                    IBinder::class.java
-                )
+                val attachMethod = when (Build.VERSION.SDK_INT) {
+                    30 -> attachMethod30()
+                    35 -> attachMethod35()
+                    else -> attachMethod35()
+                }
 
                 attachMethod.isAccessible = true
 
@@ -94,6 +53,14 @@ class ProxyActivity : AppCompatActivity() {
                 val instrumentationField = activityThreadClass.getDeclaredField("mInstrumentation")
                 instrumentationField.isAccessible = true
                 val instrumentation = instrumentationField.get(activityThread)
+
+                /*
+                 * Activity的mInstrumentation和ActivityThread的mInstrumentation是同一个吗?
+                 */
+                val instrumentationFieldInActivity = Activity::class.java.getDeclaredField("mInstrumentation")
+                instrumentationFieldInActivity.isAccessible = true
+                val instrumentationInActivity = instrumentationFieldInActivity.get(this)
+                Log.d(TAG, "Check instrumentationInActivityThread=${instrumentation.hashCode()}, instrumentationInActivity=${instrumentationInActivity.hashCode()}")
 
                 // 获取当前Activity的mToken
                 val tokenField = Activity::class.java.getDeclaredField("mToken")
@@ -125,6 +92,7 @@ class ProxyActivity : AppCompatActivity() {
 
                 // 调用attach方法
                 attachMethod.invoke(targetActivity, *params)
+                Log.d(TAG, "attachMethod invoke End, targetActivity=$targetActivity")
 
                 // 调用目标Activity的onCreate
                 val onCreateMethod = Activity::class.java.getDeclaredMethod(
@@ -132,6 +100,7 @@ class ProxyActivity : AppCompatActivity() {
                     Bundle::class.java
                 )
                 onCreateMethod.isAccessible = true
+                Log.d(TAG, "onCreateMethod invoke Begin, targetActivity=$targetActivity")
                 onCreateMethod.invoke(targetActivity, savedInstanceState)
 
                 // 将目标Activity的布局设置到代理Activity
@@ -159,4 +128,53 @@ class ProxyActivity : AppCompatActivity() {
 
     // 重写生命周期方法，传递给目标Activity
     // ...
+}
+
+private fun attachMethod30(): Method {
+    return Activity::class.java.getDeclaredMethod(
+        "attach",
+        Context::class.java,
+        Class.forName("android.app.ActivityThread"),
+        Class.forName("android.app.Instrumentation"),
+        IBinder::class.java,
+        Int::class.javaPrimitiveType,
+        Application::class.java,
+        Intent::class.java,
+        Class.forName("android.content.pm.ActivityInfo"),
+        CharSequence::class.java,
+        Activity::class.java,
+        String::class.java,
+        Class.forName("android.app.Activity\$NonConfigurationInstances"),
+        Class.forName("android.content.res.Configuration"),
+        String::class.java,
+        Class.forName("com.android.internal.app.IVoiceInteractor"),
+        Class.forName("android.view.Window"),
+        Class.forName("android.view.ViewRootImpl\$ActivityConfigCallback"),
+        IBinder::class.java
+    )
+}
+
+private fun attachMethod35(): Method {
+    return Activity::class.java.getDeclaredMethod(
+        "attach",
+        Context::class.java,
+        Class.forName("android.app.ActivityThread"),
+        Class.forName("android.app.Instrumentation"),
+        IBinder::class.java,
+        Int::class.javaPrimitiveType,
+        Application::class.java,
+        Intent::class.java,
+        Class.forName("android.content.pm.ActivityInfo"),
+        CharSequence::class.java,
+        Activity::class.java,
+        String::class.java,
+        Class.forName("android.app.Activity\$NonConfigurationInstances"),
+        Class.forName("android.content.res.Configuration"),
+        String::class.java,
+        Class.forName("com.android.internal.app.IVoiceInteractor"),
+        Class.forName("android.view.Window"),
+        Class.forName("android.view.ViewRootImpl\$ActivityConfigCallback"),
+        IBinder::class.java,
+        IBinder::class.java
+    )
 }

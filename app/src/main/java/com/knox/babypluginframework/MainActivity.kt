@@ -43,9 +43,6 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val hostContext = this.baseContext
 
-        ActivityHook.install(this, ProxyActivity::class.java)
-        ActivityHook.addTargetActivity("com.knox.babypluginframework.hookactivity.TargetActivity")
-
         setContent {
             BabyPluginFrameworkTheme {
                 Scaffold(modifier = Modifier.fillMaxSize(), bottomBar = {
