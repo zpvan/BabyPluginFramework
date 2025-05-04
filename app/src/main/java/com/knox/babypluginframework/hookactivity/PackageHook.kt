@@ -59,7 +59,7 @@ fun hookPackageManager(context: Context) {
                                 return createFakeActivityInfo(context, componentName)
                             } catch (e: InvocationTargetException) {
                                 Log.d(TAG, "getActivityInfo 发生异常, message=${e.message}, targetMessage=${e.targetException.message}")
-                                // 代码中捕获不到 NameNotFoundException, 日志会印
+                                // 代码中捕获不到 NameNotFoundException, 但日志会印
                                 if (e.targetException is PackageManager.NameNotFoundException) {
                                     Log.d(
                                         TAG,

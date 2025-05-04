@@ -14,6 +14,7 @@ class MyApplication : Application() {
 
         // 添加需要代理的目标Activity
         ActivityHook.addTargetActivity("com.knox.babypluginframework.hookactivity.TargetActivity")
+        ActivityHook.addTargetActivity("com.knox.pluginapk.hookactivity.PluginTargetActivity")
 
         hookPackageManager(this)
     }

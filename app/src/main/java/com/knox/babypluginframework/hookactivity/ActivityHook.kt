@@ -195,7 +195,7 @@ fun hookInstrumentation(context: Context, proxyActivityClass: Class<*>) {
                         who, contextThread, token, target, newIntent, requestCode, options
                     ) as? ActivityResult
                 } catch (e: Exception) {
-                    Log.e("ActivityHook", "调用原始execStartActivity失败", e)
+                    Log.e(TAG, "调用原始execStartActivity失败", e)
                 }
 
                 return null
@@ -275,7 +275,7 @@ fun hookInstrumentation(context: Context, proxyActivityClass: Class<*>) {
          *               com.knox.babypluginframework         W  	at com.knox.babypluginframework.hookactivity.TargetActivity.onCreate(TargetActivity.kt:11)
          *               com.knox.babypluginframework         W  	at com.knox.babypluginframework.hookactivity.ProxyActivity.onCreate(ProxyActivity.kt:104)
          *
-         * Close_1:
+         * Closed_1:
          * 动态代理ActivityThread中的sPackageManager对象
          */
 
@@ -459,7 +459,7 @@ fun hookActivityManager(context: Context, proxyActivityClass: Class<*>) {
                             args[intentIndex] = proxyIntent
 
                             Log.d(
-                                "ActivityHook",
+                                TAG,
                                 "拦截到startActivity，目标: $targetActivityName，已替换为代理"
                             )
                         }
@@ -474,8 +474,8 @@ fun hookActivityManager(context: Context, proxyActivityClass: Class<*>) {
         // 4. 将代理对象设置回 Singleton 中
         mInstanceField.set(singleton, proxy)
 
-        Log.d("ActivityHook", "成功Hook ActivityManager")
+        Log.d(TAG, "成功Hook ActivityManager")
     } catch (e: Exception) {
-        Log.e("ActivityHook", "Hook ActivityManager 失败", e)
+        Log.e(TAG, "Hook ActivityManager 失败", e)
     }
 }

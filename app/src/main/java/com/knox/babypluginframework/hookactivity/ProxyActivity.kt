@@ -10,12 +10,16 @@ import android.os.IBinder
 import android.util.Log
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.knox.babypluginframework.PluginManager
 import java.lang.reflect.Method
 
 // /Users/knox/Library/Android/sdk/sources/android-30/android/app
 private const val TAG = "ProxyActivity"
 
 open class ProxyActivity : AppCompatActivity() {
+
+    private var pluginActivity: Activity? = null
+    private var pluginClassLoader: ClassLoader? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,10 +33,19 @@ open class ProxyActivity : AppCompatActivity() {
 
             try {
                 // 加载目标Activity类
-                val targetActivityClass = Class.forName(targetActivityName)
+//                val targetActivityClass = Class.forName(targetActivityName)
+
+                // 2. 获取插件ClassLoader
+                pluginClassLoader = PluginManager.getPluginClassLoader()
+                    ?: throw IllegalStateException("插件ClassLoader未初始化，请先调用PluginManager.loadPlugin")
+
+                // 3. 加载插件Activity类
+                val targetActivityClass = pluginClassLoader!!.loadClass(targetActivityName)
 
                 // 创建目标Activity实例
                 val targetActivity = targetActivityClass.newInstance() as Activity
+
+                Log.d(TAG, "尝试加载插件Activity: $targetActivityName")
 
                 // 反射获取 Activity.attach 方法
                 val attachMethod = when (Build.VERSION.SDK_INT) {

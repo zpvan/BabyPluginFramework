@@ -9,6 +9,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.BabyPluginFramework">
         <activity
+            android:name=".hookactivity.PluginTargetActivity"
+            android:exported="false" />
+        <activity
             android:name=".TestActivity1"
             android:exported="false" />
 
