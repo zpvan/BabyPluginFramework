@@ -232,7 +232,12 @@ fun hookInstrumentation(context: Context, proxyActivityClass: Class<*>) {
 
             // 重写 newActivity 方法，用于恢复原始 Intent
             override fun newActivity(
-                cl: ClassLoader, className: String,
+                /*
+                 * 如果没有插件化, 这里的cl对象就是宿主App原生的ClassLoader
+                 * 如果是插件化, 也就是要加载插件中的Activity类, 这个cl对象就应该是插件对应的ClassLoader
+                 */
+                cl: ClassLoader,
+                className: String,
                 intent: Intent
             ): Activity {
                 val originalIntent = intent.getParcelableExtra<Intent>("original_intent")

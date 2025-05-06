@@ -1,7 +1,10 @@
 package com.knox.pluginapk
 
 import android.content.res.Resources
+import android.util.Log
 import com.knox.pluginlibrary.IPlugin
+
+private const val TAG = "BabyPlugin"
 
 class BabyPlugin : IPlugin {
     override val name: String
@@ -10,7 +13,7 @@ class BabyPlugin : IPlugin {
     @OptIn(ExperimentalStdlibApi::class)
     override fun getStringForResId(resources: Resources): String {
         return resources.getString(R.string.hello_resources).also {
-            println("In BabyPlugin, getStringForResId(${R.string.hello_resources.toHexString()})=$it")
+            Log.d(TAG, "getStringForResId(${R.string.hello_resources.toHexString()})=$it")
         }
     }
 }

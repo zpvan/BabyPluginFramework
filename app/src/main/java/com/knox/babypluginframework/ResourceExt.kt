@@ -3,6 +3,7 @@ package com.knox.babypluginframework
 import android.content.Context
 import android.content.res.AssetManager
 import android.content.res.Resources
+import android.util.Log
 import com.knox.pluginlibrary.IPlugin
 import dalvik.system.PathClassLoader
 import java.io.File
@@ -28,7 +29,9 @@ import java.io.File
  *
  */
 
-internal fun loadPluginAndGetRes(context: Context, pluginApkFile: File): String? {
+private const val TAG = "ResourceExt"
+
+internal fun loadPluginThenGetRes(context: Context, pluginApkFile: File): String? {
     try {
         // 1. 获取插件的Resources对象
         // 通过反射, 创建AssetManager对象, 调用addAssetPath方法, 把pluginApkFile的路径添加到这个AssetManager对象中
@@ -58,7 +61,7 @@ internal fun loadPluginAndGetRes(context: Context, pluginApkFile: File): String?
         // 6. 获取Resource
         val res = babyPlugin.getStringForResId(pluginResources)
 
-        println("BabyPlugin res=$res")
+        Log.d(TAG, "BabyPlugin res=$res")
         return res
     } catch (e: Exception) {
         e.printStackTrace()

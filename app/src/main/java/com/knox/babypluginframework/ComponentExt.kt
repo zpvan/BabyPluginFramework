@@ -51,7 +51,7 @@ internal fun startPluginTestActivity1(context: Context, pluginApkFile: File) {
 /**
  * 将插件的 DEX 动态添加到宿主的 ClassLoader
  */
-fun mergeDexToHostClassLoader(context: Context, pluginApkFile: File) {
+private fun mergeDexToHostClassLoader(context: Context, pluginApkFile: File) {
     try {
         // 获取当前的 PathClassLoader
         val hostClassLoader = context.classLoader as PathClassLoader
