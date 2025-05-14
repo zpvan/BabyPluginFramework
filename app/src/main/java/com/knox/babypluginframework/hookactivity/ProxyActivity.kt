@@ -123,8 +123,8 @@ class ProxyActivity : AppCompatActivity() {
                 onCreateMethod.invoke(targetActivity, savedInstanceState)
 
                 // 8. 将目标Activity的布局设置到代理Activity
-                val decorView = targetActivity.window.decorView
-                setContentView(decorView)
+//                val decorView = targetActivity.window.decorView
+//                setContentView(decorView)
 
                 Log.d(TAG, "成功代理 $targetActivityName")
             } catch (e: Exception) {

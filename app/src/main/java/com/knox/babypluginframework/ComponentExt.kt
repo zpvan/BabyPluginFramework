@@ -46,6 +46,16 @@ internal fun startPluginTestActivity1(context: Context, pluginApkFile: File) {
 
     Log.d(TAG, "startPluginTestActivity1 baseContext=${context.hashCode()}")
     context.startActivity(intent)
+
+    /*
+     * Issue:
+     * pluginApk中com.knox.pluginapk.TestActivity1使用的layout
+     * 与com.knox.babypluginframework.hookactivity.ProxyActivity使用的layout发生了id冲突
+     * 导致启动了TestActivity1, 却看到ProxyActivity的界面
+     *
+     * Closed:
+     *
+     */
 }
 
 /**
@@ -98,7 +108,13 @@ private fun mergeDexToHostClassLoader(context: Context, pluginApkFile: File) {
         // 先放入插件的 dexElements（优先加载插件中的类）
         System.arraycopy(pluginDexElements, 0, newDexElements, 0, pluginDexElements.size)
         // 再放入原来的 dexElements
-        System.arraycopy(oldDexElements, 0, newDexElements, pluginDexElements.size, oldDexElements.size)
+        System.arraycopy(
+            oldDexElements,
+            0,
+            newDexElements,
+            pluginDexElements.size,
+            oldDexElements.size
+        )
 
         // 将新的 dexElements 设置回宿主的 pathList
         dexElementsField.set(pathList, newDexElements)
@@ -116,7 +132,8 @@ private fun mergeDexToHostClassLoader(context: Context, pluginApkFile: File) {
 private fun loadPluginResources(context: Context, pluginApkFile: File): Resources {
     try {
         val assetManager = AssetManager::class.java.newInstance()
-        val addAssetPathMethod = AssetManager::class.java.getDeclaredMethod("addAssetPath", String::class.java)
+        val addAssetPathMethod =
+            AssetManager::class.java.getDeclaredMethod("addAssetPath", String::class.java)
         addAssetPathMethod.isAccessible = true
 
         // !!!添加host的资源!!!
@@ -131,7 +148,7 @@ private fun loadPluginResources(context: Context, pluginApkFile: File): Resource
             context.resources.configuration
         )
     } catch (e: Exception) {
-        Log.e("PluginLoader", "Failed to load plugin resources", e)
+        Log.e(TAG, "Failed to load plugin resources", e)
         throw RuntimeException("Failed to load plugin resources", e)
     }
 }

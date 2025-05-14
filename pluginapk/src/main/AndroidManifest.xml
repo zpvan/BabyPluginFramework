@@ -9,8 +9,21 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.BabyPluginFramework">
         <activity
-            android:name=".hookactivity.PluginTargetActivity"
+            android:name=".TestActivity5"
             android:exported="false" />
+        <activity
+            android:name=".TestActivity4"
+            android:exported="false" />
+        <activity
+            android:name=".TestActivity3"
+            android:exported="false" />
+        <activity
+            android:name=".TestActivity2"
+            android:exported="false" />
+        <activity
+            android:name=".hookactivity.PluginTargetActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat" />
         <activity
             android:name=".TestActivity1"
             android:exported="false" />

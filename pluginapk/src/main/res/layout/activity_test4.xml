@@ -5,27 +5,15 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".TestActivity1">
+    tools:context=".TestActivity4">
 
-    <!-- 新添加的 TextView（上方） -->
     <TextView
-        android:id="@+id/newTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="New Text"
-        app:layout_constraintBottom_toTopOf="@id/originalTextView"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <!-- 原始 TextView（添加 ID 以便引用） -->
-    <TextView
-        android:id="@+id/originalTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="ProxyActivity"
+        android:text="TestActivity4"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
