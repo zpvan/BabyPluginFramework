@@ -136,10 +136,10 @@ private fun loadPluginResources(context: Context, pluginApkFile: File): Resource
             AssetManager::class.java.getDeclaredMethod("addAssetPath", String::class.java)
         addAssetPathMethod.isAccessible = true
 
-        // !!!添加host的资源!!!
-        addAssetPathMethod.invoke(assetManager, context.packageResourcePath)
         // !!!添加plugin的资源!!!
         addAssetPathMethod.invoke(assetManager, pluginApkFile.absolutePath)
+        // !!!添加host的资源!!!
+        addAssetPathMethod.invoke(assetManager, context.packageResourcePath)
 
         // 创建插件 Resources 对象
         return Resources(

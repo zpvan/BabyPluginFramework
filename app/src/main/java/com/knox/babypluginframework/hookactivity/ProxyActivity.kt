@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import android.content.res.Resources
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
@@ -20,6 +21,7 @@ class ProxyActivity : AppCompatActivity() {
 
     private var pluginActivity: Activity? = null
     private var pluginClassLoader: ClassLoader? = null
+    private var pluginResources: Resources? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,6 +42,8 @@ class ProxyActivity : AppCompatActivity() {
                 // 1. 获取插件ClassLoader
                 pluginClassLoader = PluginManager.getPluginClassLoader()
                     ?: throw IllegalStateException("插件ClassLoader未初始化，请先调用PluginManager.loadPlugin")
+
+                pluginResources = PluginManager.getPluginResources()
 
                 // 2. 加载插件Activity类
                 val targetActivityClass = pluginClassLoader!!.loadClass(targetActivityName)
@@ -123,8 +127,8 @@ class ProxyActivity : AppCompatActivity() {
                 onCreateMethod.invoke(targetActivity, savedInstanceState)
 
                 // 8. 将目标Activity的布局设置到代理Activity
-//                val decorView = targetActivity.window.decorView
-//                setContentView(decorView)
+                val decorView = targetActivity.window.decorView
+                setContentView(decorView)
 
                 Log.d(TAG, "成功代理 $targetActivityName")
             } catch (e: Exception) {
@@ -143,6 +147,10 @@ class ProxyActivity : AppCompatActivity() {
                 setPadding(50, 50, 50, 50)
             })
         }
+    }
+
+    override fun getResources(): Resources {
+        return pluginResources ?: super.getResources()
     }
 
     // 重写生命周期方法，传递给目标Activity
