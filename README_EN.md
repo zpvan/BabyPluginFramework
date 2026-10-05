@@ -1,5 +1,7 @@
 # BabyPluginFramework
 
+[![build](https://github.com/zpvan/BabyPluginFramework/actions/workflows/build.yml/badge.svg)](https://github.com/zpvan/BabyPluginFramework/actions/workflows/build.yml)
+
 [中文](README.md) | **English**
 
 > A learning project for Android plugin technology: building from scratch a host app that loads a plugin APK, progressively covering ClassLoader, resource loading, component launching, and the stub (placeholder) approach.

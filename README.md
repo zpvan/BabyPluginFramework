@@ -1,5 +1,7 @@
 # BabyPluginFramework
 
+[![build](https://github.com/zpvan/BabyPluginFramework/actions/workflows/build.yml/badge.svg)](https://github.com/zpvan/BabyPluginFramework/actions/workflows/build.yml)
+
 **中文** | [English](README_EN.md)
 
 > 一个 Android 插件化（Plugin）技术的学习记录项目：从零实现宿主 App 加载插件 APK，逐步覆盖 ClassLoader、资源加载、组件启动与占坑（Stub）方案。
