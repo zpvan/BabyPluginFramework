@@ -2,52 +2,52 @@
 
 [![build](https://github.com/zpvan/BabyPluginFramework/actions/workflows/build.yml/badge.svg)](https://github.com/zpvan/BabyPluginFramework/actions/workflows/build.yml)
 
-**中文** | [English](README_EN.md)
+**English** | [中文](README_CN.md)
 
-> 一个 Android 插件化（Plugin）技术的学习记录项目：从零实现宿主 App 加载插件 APK，逐步覆盖 ClassLoader、资源加载、组件启动与占坑（Stub）方案。
+> A learning project for Android plugin technology: building from scratch a host app that loads a plugin APK, progressively covering ClassLoader, resource loading, component launching, and the stub (placeholder) approach.
 
-⚠️ **本项目为学习/演示用途，非生产可用框架。**
+⚠️ **This project is for learning/demo purposes only. It is NOT production-ready.**
 
-## 项目简介
+## Introduction
 
-本项目记录了一个最小 Android 插件化框架的完整演进过程：宿主 App 在运行时将插件 APK（未安装）加载进自己的进程，启动其中的 Activity/Service 并正确加载其资源。每个阶段遇到的问题与解决方案都沉淀为 docs/ 下的技术文档和 git 提交历史。
+This project documents the complete evolution of a minimal Android plugin framework: the host app loads an (uninstalled) plugin APK into its own process at runtime, launches its Activities/Services, and loads its resources correctly. Problems and solutions at each stage are captured in the technical documents under docs/ (in Chinese) and in the git history.
 
-## 架构
+## Architecture
 
-三个 Gradle 模块：
+Three Gradle modules:
 
-| 模块 | 包名 | 职责 |
+| Module | Package | Responsibility |
 |---|---|---|
-| `:app` | `com.knox.babypluginframework` | 宿主 App：加载插件 APK、启动插件组件、资源代理 |
-| `:pluginapk` | `com.knox.pluginapk` | 插件 APK：被宿主加载的测试插件，含 TestActivity1~5 与 TestService1 |
-| `:pluginlibrary` | `com.knox.pluginlibrary` | 共享接口库：宿主与插件的通信契约 |
+| `:app` | `com.knox.babypluginframework` | Host app: loads the plugin APK, launches plugin components, proxies resources |
+| `:pluginapk` | `com.knox.pluginapk` | Plugin APK: a test plugin loaded by the host, with TestActivity1~5 and TestService1 |
+| `:pluginlibrary` | `com.knox.pluginlibrary` | Shared interface library: the communication contract between host and plugin |
 
-依赖关系：`:app` → `:pluginlibrary` ← `:pluginapk`（接口隔离原则 ISP：宿主与插件互不依赖，仅共同依赖接口库）
+Dependencies: `:app` → `:pluginlibrary` ← `:pluginapk` (Interface Segregation Principle: host and plugin never depend on each other, only on the shared contract)
 
-核心接口：
+Core interfaces:
 
-- `IPlugin` — 插件对宿主暴露的契约（插件名称、资源访问）
-- `HostBridge` / `PluginBridge` — Bridge 模式双向通信：宿主推送数据给插件、插件从宿主拉取数据
+- `IPlugin` — the contract a plugin exposes to the host (plugin name, resource access)
+- `HostBridge` / `PluginBridge` — Bridge-pattern bidirectional communication: host pushes data to plugin; plugin pulls data from host
 
-## 技术演进
+## Evolution Stages
 
-| 阶段 | 内容 | 文档 |
+| Stage | Content | Document (Chinese) |
 |---|---|---|
-| 1. ClassLoader 加载 | 加载 assets 中的插件 APK；接口隔离与 Bridge 通信；插件瘦身 45MB→29MB；Copy Task 自动拷贝插件 APK | [插件化技术总结](docs/插件化技术总结.md) |
-| 2. 资源加载 | 从插件 APK 加载 string 资源 | [插件化技术总结](docs/插件化技术总结.md) |
-| 3. 组件启动 | 通过宿主 AndroidManifest.xml 声明方式启动插件 Activity/Service；SDK 30 真机适配 | [Activity 的插件化解决方案 Sdk30](docs/Activity的插件化解决方案Sdk30.md) |
-| 4. Stub Activity 与资源冲突 | 插件 AssetManager 优先加载插件资源、回落宿主；重写 getResources 显示插件 UI；资源 ID 冲突分析 | [资源冲突解决方案](docs/资源冲突解决方案.md) |
+| 1. ClassLoader | Load plugin APK from assets; interface isolation and Bridge communication; plugin slimming 45MB→29MB; Copy Task for automatic APK deployment | [插件化技术总结](docs/插件化技术总结.md) |
+| 2. Resources | Load string resources from the plugin APK | [插件化技术总结](docs/插件化技术总结.md) |
+| 3. Components | Launch plugin Activity/Service via declarations in the host's AndroidManifest.xml; on-device adaptation for SDK 30 | [Activity 的插件化解决方案 Sdk30](docs/Activity的插件化解决方案Sdk30.md) |
+| 4. Stub Activity & Resource Conflicts | Plugin AssetManager loads plugin resources first, falls back to host; override getResources to render plugin UI; analysis of resource ID conflicts | [资源冲突解决方案](docs/资源冲突解决方案.md) |
 
-各阶段的详细实现过程与问题排查记录见 git 提交历史（dev-ClassLoader → dev-Resources → dev-Component → dev-StubActivity 四个分支已合并至 main）。
+See the git history for the detailed implementation journey (the four branches dev-ClassLoader → dev-Resources → dev-Component → dev-StubActivity have all been merged into main).
 
-## 构建指南
+## Build
 
-环境要求：
+Requirements:
 
-- **JDK 17**（AGP 8.9.1 + Gradle 8.11.1 要求；更高版本 JDK 未经测试）
-- **Android SDK Platform 35**（compileSdk = 35，minSdk = 30，targetSdk = 35）
+- **JDK 17** (required by AGP 8.9.1 + Gradle 8.11.1; newer JDK versions are untested)
+- **Android SDK Platform 35** (compileSdk = 35, minSdk = 30, targetSdk = 35)
 
-项目不含 `local.properties`，通过环境变量指定 JDK 与 SDK 路径：
+The project has no `local.properties`; point Gradle at your JDK and SDK via environment variables:
 
 ```bash
 export JAVA_HOME=/path/to/jdk-17
@@ -55,13 +55,13 @@ export ANDROID_HOME=/path/to/android-sdk
 ./gradlew assembleDebug
 ```
 
-构建成功后，插件 APK 会由 Copy Task 自动拷贝至 `app/src/main/assets/`，直接安装宿主 App 即可体验插件加载。
+After a successful build, a Copy Task places the plugin APK into `app/src/main/assets/` automatically — just install and run the host app to see plugin loading in action.
 
-## 已知限制
+## Known Limitations
 
-- 插件与宿主资源 ID 冲突时，可能错误显示宿主同 ID 资源（详见 [资源冲突解决方案](docs/资源冲突解决方案.md)）
-- 仅在 Samsung S20（Android 11，SDK 30）真机实测过
-- 插件 Activity/Service 需预先在宿主 AndroidManifest.xml 中声明，真正的占坑（Stub）免声明方案仍在探索中
+- When plugin and host resource IDs collide, the host's resource with the same ID may be displayed instead (see [资源冲突解决方案](docs/资源冲突解决方案.md))
+- Only tested on a Samsung S20 (Android 11, SDK 30) physical device
+- Plugin Activities/Services must be pre-declared in the host's AndroidManifest.xml; a true declaration-free stub approach is still being explored
 
 ## License
 
