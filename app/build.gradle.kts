@@ -37,6 +37,11 @@ android {
     buildFeatures {
         compose = true
     }
+    lint {
+        // 宿主 manifest 声明的插件组件类存在于插件 APK 中（运行时加载），
+        // 不在宿主 classpath —— 这是插件化框架的固有机制，属 MissingClass 误报
+        disable += "MissingClass"
+    }
 }
 
 dependencies {
