@@ -72,3 +72,5 @@ lint/tmp/
 
 # MacOS
 .DS_Store
+# Claude Code superpowers session docs
+docs/superpowers/
